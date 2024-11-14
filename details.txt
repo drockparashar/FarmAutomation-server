@@ -1,0 +1,3 @@
+mongo cluster pwd- XBuKEeCvNj4cQptV
+
+mongodb+srv://pranshu007parashar:XBuKEeCvNj4cQptV@cluster0.gwaom.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
