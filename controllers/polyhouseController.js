@@ -4,23 +4,43 @@ import Polyhouse from '../models/Polyhouse.js';
  * Add a new polyhouse
  */
 const addPolyhouse = async (req, res) => {
-    try {
-      const { userId, name, location, crops, configuration } = req.body;
-  
-      const polyhouse = new Polyhouse({
-        user: userId,
-        name,
-        location,
-        crops,
-        configuration,
-      });
-  
-      await polyhouse.save();
-      res.status(201).json({ message: 'Polyhouse added successfully', polyhouse });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to add polyhouse', details: error.message });
+  try {
+    const { name, location } = req.body;
+
+    // Validate input
+    if (!name || !location || !location.latitude || !location.longitude) {
+      return res.status(400).json({ error: "Name and valid location coordinates are required." });
     }
-  };
+
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Create a new Polyhouse
+    const newPolyhouse = new Polyhouse({
+      name,
+      location: {
+        coordinates: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+        address: location.address || "", // Optional address
+      },
+      user: req.user._id, // Link polyhouse to the authenticated user
+    });
+
+    // Save the polyhouse
+    await newPolyhouse.save();
+
+    res.status(201).json({ message: "Polyhouse created successfully", polyhouse: newPolyhouse });
+  } catch (error) {
+    console.error("Error creating polyhouse:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
   
 
 /**

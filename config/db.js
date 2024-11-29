@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import { InfluxDB } from '@influxdata/influxdb-client';
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 const mongoConnect = async () => {
   try {

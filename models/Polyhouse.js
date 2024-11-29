@@ -1,10 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const polyhouseSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    location: { type: String, required: true },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    location: {
+      coordinates: {
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true },
+      },
+      address: { type: String }, // Optional descriptive address
+    },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     crops: [
       {
         cropName: { type: String, required: true },
@@ -19,7 +25,7 @@ const polyhouseSchema = new mongoose.Schema(
       humidityRange: { min: Number, max: Number },
       additionalSettings: { type: Map, of: String }, // Allows dynamic configurations.
     },
-    status: { type: String, enum: ['active', 'maintenance'], default: 'active' },
+    status: { type: String, enum: ["active", "maintenance"], default: "active" },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields
