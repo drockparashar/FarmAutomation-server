@@ -15,11 +15,16 @@ export const getPolyhouseData = async (req, res) => {
 
     // Define the Flux query to fetch sensor data for the given polyhouseId
     const query = `
-      from(bucket: "my-bucket")
-        |> range(start: -1h)
-        |> filter(fn: (r) => r.polyhouseId == "${polyhouseId}" and r._measurement == "distance")
-        |> limit(n: 1)
-    `;
+    from(bucket: "my-bucket")
+      |> range(start: -1d) // Equivalent to last 1 day
+      |> filter(fn: (r) => r["_measurement"] == "sensor_data") // Match measurement
+      |> filter(fn: (r) => r["polyhouseId"] == "${polyhouseId}") // Match polyhouseId
+      |> filter(fn: (r) => exists r["_value"] and r["_field"] == "distance") // Ensure "distance" field exists
+      |> sort(columns: ["_time"], desc: true) // Sort by time, descending
+      |> limit(n: 1) // Limit to 1 record
+  `;
+  
+
 
     // Fetch sensor data
     const sensorData = await querySensorData(query);

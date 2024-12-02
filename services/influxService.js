@@ -47,16 +47,11 @@ export const writeSensorData = async (data) => {
  */
 export const querySensorData = async (query) => {
   try {
-    let distance = null;
+    const sensorData = [];
 
-    // Query InfluxDB
     await queryApi.queryRows(query, {
       next(row, tableMeta) {
-        const obj = tableMeta.toObject(row);
-        
-        if (!distance) {
-          distance = obj._value; // Store the first 'distance' value
-        }
+        sensorData.push(tableMeta.toObject(row));
       },
       error(err) {
         console.error("Error querying InfluxDB:", err.message);
@@ -67,11 +62,9 @@ export const querySensorData = async (query) => {
       },
     });
 
-    // Return the single distance value
-    return distance;
+    return sensorData;
   } catch (err) {
     console.error("Query Error:", err.message);
     throw err;
   }
 };
-
