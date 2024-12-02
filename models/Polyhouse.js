@@ -5,10 +5,10 @@ const polyhouseSchema = new mongoose.Schema(
     name: { type: String, required: true },
     location: {
       coordinates: {
-        latitude: { type: Number, required: true },
-        longitude: { type: Number, required: true },
+        latitude: { type: Number},
+        longitude: { type: Number},
       },
-      address: { type: String }, // Optional descriptive address
+      address: { type: String, required: true }, // Optional descriptive address
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     crops: [

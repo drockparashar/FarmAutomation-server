@@ -1,62 +1,96 @@
 import Polyhouse from '../models/Polyhouse.js';
 
-/**
- * Add a new polyhouse
- */
-const addPolyhouse = async (req, res) => {
+import { authenticateUser } from "../middlewares/authMiddleware.js";
+
+import {querySensorData} from "../services/influxService.js"
+
+export const getPolyhouseData = async (req, res) => {
   try {
-    const { name, location } = req.body;
+    const { polyhouseId } = req.params;
 
-    // Validate input
-    if (!name || !location || !location.latitude || !location.longitude) {
-      return res.status(400).json({ error: "Name and valid location coordinates are required." });
+    // Validate polyhouseId
+    if (!polyhouseId) {
+      return res.status(400).json({ error: "Polyhouse ID is required" });
     }
 
-    // Check if user is authenticated
-    if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+    // Define the Flux query to fetch sensor data for the given polyhouseId
+    const query = `
+      from(bucket: "my-bucket")
+        |> range(start: -1h)
+        |> filter(fn: (r) => r.polyhouseId == "${polyhouseId}" and r._measurement == "distance")
+        |> limit(n: 1)
+    `;
+
+    // Fetch sensor data
+    const sensorData = await querySensorData(query);
+
+    if (!sensorData || sensorData.length === 0) {
+      return res.status(404).json({ error: "No sensor data found for the specified polyhouse" });
     }
 
-    // Create a new Polyhouse
-    const newPolyhouse = new Polyhouse({
-      name,
-      location: {
-        coordinates: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
-        address: location.address || "", // Optional address
-      },
-      user: req.user._id, // Link polyhouse to the authenticated user
-    });
+    // Get the latest distance (assuming distance is stored in _value field)
+    const latestData = sensorData[0];
+    const response = {
+      polyhouseId,
+      distance: latestData._value || "N/A", // You can modify this as needed
+    };
 
-    // Save the polyhouse
-    await newPolyhouse.save();
-
-    res.status(201).json({ message: "Polyhouse created successfully", polyhouse: newPolyhouse });
+    // Respond with the formatted data
+    res.status(200).json(response);
   } catch (error) {
-    console.error("Error creating polyhouse:", error.message);
+    console.error("Error fetching polyhouse data:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-
-  
-
 /**
- * Get all polyhouses for a user
+ * Add a new polyhouse
  */
-const getPolyhouses = async (req, res) => {
+
+const addPolyhouse = [
+  authenticateUser,
+  async (req, res) => {
     try {
-      const { userId } = req.params;
-  
-      const polyhouses = await Polyhouse.find({ user: userId }).populate('user', 'name email');
+      const { name, location } = req.body;
+
+      // Validate input
+      if (!name || !location || !location.address) {
+        return res.status(400).json({ error: "Name and valid address are required." });
+      }
+
+      // Create a new Polyhouse
+      const newPolyhouse = new Polyhouse({
+        name,
+        location: {
+          address: location.address || "", // Optional address
+        },
+        user: req.user._id, // Link polyhouse to the authenticated user
+      });
+
+      // Save the polyhouse
+      await newPolyhouse.save();
+
+      res.status(201).json({ message: "Polyhouse created successfully", polyhouse: newPolyhouse });
+    } catch (error) {
+      console.error("Error creating polyhouse:", error.message);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+];
+
+//Get Polyhouses
+
+const getPolyhouses = [
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const polyhouses = await Polyhouse.find({ user: req.user._id }).populate("user", "name email");
       res.status(200).json(polyhouses);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch polyhouses', details: error.message });
+      res.status(500).json({ error: "Failed to fetch polyhouses", details: error.message });
     }
-  };
-  
+  },
+];
 
 /**
  * Update polyhouse details

@@ -1,5 +1,5 @@
 import express from 'express';
-import { addPolyhouse, getPolyhouses, updatePolyhouse, deletePolyhouse } from '../controllers/polyhouseController.js';
+import { addPolyhouse, getPolyhouses, updatePolyhouse, deletePolyhouse, getPolyhouseData } from '../controllers/polyhouseController.js';
 
 const router = express.Router();
 
@@ -7,7 +7,9 @@ const router = express.Router();
 router.post('/', addPolyhouse);
 
 // Get all polyhouses for a user
-router.get('/:userId', getPolyhouses);
+router.get('/', getPolyhouses);
+
+router.get('/:polyhouseId', getPolyhouseData);
 
 // Update a polyhouse
 router.put('/:polyhouseId', updatePolyhouse);
