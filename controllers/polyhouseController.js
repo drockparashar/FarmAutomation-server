@@ -1,52 +1,48 @@
 import Polyhouse from '../models/Polyhouse.js';
+import { SensorData } from '../models/SensorData.js';
 
 import { authenticateUser } from "../middlewares/authMiddleware.js";
 
-import {querySensorData} from "../services/influxService.js"
+// import {querySensorData} from "../services/influxService.js"
 
 export const getPolyhouseData = async (req, res) => {
   try {
-    const { polyhouseId } = req.params;
+    let { polyhouseId } = req.params;
+    polyhouseId=polyhouseId.replace(':','');
+    console.log(polyhouseId);
 
-    // Validate polyhouseId
+    // Validate the polyhouseId
     if (!polyhouseId) {
       return res.status(400).json({ error: "Polyhouse ID is required" });
     }
 
-    // Define the Flux query to fetch sensor data for the given polyhouseId
-    const query = `
-    from(bucket: "my-bucket")
-      |> range(start: -1d) // Equivalent to last 1 day
-      |> filter(fn: (r) => r["_measurement"] == "sensor_data") // Match measurement
-      |> filter(fn: (r) => r["polyhouseId"] == "${polyhouseId}") // Match polyhouseId
-      |> filter(fn: (r) => exists r["_value"] and r["_field"] == "distance") // Ensure "distance" field exists
-      |> sort(columns: ["_time"], desc: true) // Sort by time, descending
-      |> limit(n: 1) // Limit to 1 record
-  `;
-  
+    // Find the latest sensor data for the given polyhouseId
+    const latestSensorData = await SensorData.findOne({ polyhouseId })
+      .sort({ _id: -1 }) // Sort by the most recent timestamp
+      .exec();
+      console.log(latestSensorData.distance);
 
-
-    // Fetch sensor data
-    const sensorData = await querySensorData(query);
-
-    if (!sensorData || sensorData.length === 0) {
-      return res.status(404).json({ error: "No sensor data found for the specified polyhouse" });
+    if (!latestSensorData) {
+      return res.status(404).json({ error: "No sensor data found for this polyhouse" });
     }
 
-    // Get the latest distance (assuming distance is stored in _value field)
-    const latestData = sensorData[0];
-    const response = {
-      polyhouseId,
-      distance: latestData._value || "N/A", // You can modify this as needed
-    };
-
-    // Respond with the formatted data
-    res.status(200).json(response);
+    // Return the latest sensor data
+    res.status(200).json({
+      message: "Latest sensor data retrieved successfully",
+      data: {
+        polyhouseId: latestSensorData.polyhouseId,
+        distance: latestSensorData.distance,
+        timestamp: latestSensorData.createdAt, // Automatically provided by MongoDB
+      },
+    });
   } catch (error) {
-    console.error("Error fetching polyhouse data:", error.message);
+    console.error("Error fetching sensor data:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
+
 
 /**
  * Add a new polyhouse
